@@ -1,0 +1,141 @@
+--[[ 
+
+Lazy Utils v0.1.2
+For TurtleOS 1.5
+by Golden_Obsidian
+
+This specific copy is outdated and intended for testing imports
+
+--]]
+
+--[[ Lazy Utils --]]
+function lu(luType, luArg1, luArg2, luArg3, luArg4) 
+
+    -- Turn Right / Left / Around
+    if luType == "turnRight" then
+        return turtle.turnRight()
+    end
+    if luType == "turnLeft" then
+        return turtle.turnLeft()
+    end
+    if luType == "turnAround" then
+        turtle.turnRight()
+        return turtle.turnRight()
+    end
+
+    -- Ensure not nil.
+    -- lu("notNil", value (default), default (false))
+    if luType == "notNil" then
+        if not luArg1 then
+            if not luArg2 then
+                return false
+            end
+            return luArg2
+        end
+        return luArg1
+    end
+
+    -- Convert number to slot. Returns a number 1-16
+    -- lu("toSlot", nNumber (1))
+    if luType == "toSlot" then
+        local slot = lu("notNil", luArg1, 1)
+        slot = ((luArg1 - 1) % 16) + 1
+        if slot < 1 then
+            slot = slot + 16
+        end
+        return slot
+    end
+
+    -- Returns total quantity of items in inventory range (default all)
+    -- lu("getTotalItems", nFirstSlot (1), nLastSlot (16))
+    if luType == "getTotalItems" then
+        local lower = lu("toSlot", lu("notNil", luArg1, 1))
+        local upper = lu("toSlot", lu("notNil", luArg2, 16))
+        local total = 0
+        for slot=lower,upper do
+            turtle.select(slot)
+            total = total + turtle.getItemCount(slot)
+        end
+        return total
+    end
+
+    -- Pick up item entities. Returns number of items picked up
+    -- lu("pick")
+    if luType == "pick" then
+        local startAmount = lu("getTotalItems")
+        if turtle.detect() == false then
+            turtle.suck()
+        end
+        if turtle.detectUp() == false then
+            turtle.suckUp()
+        end
+        if turtle.detectDown() == false then
+            turtle.suckDown()
+        end
+        return (lu("getTotalItems") - startAmount)
+    end
+
+    -- Place a block. Returns success
+    -- lu("place", nSlot (1), sDirection (forward), nRetain (0))
+    if luType == "place" then
+        local slot = lu("toSlot", lu("notNil", luArg1, 1))
+        local direction = lu("notNil", luArg2, "forward")
+        local retain = lu("notNil", luArg3, 0)
+        turtle.select(slot)
+        if (turtle.getItemCount() <= retain) then
+            return false -- Retain some items
+        end
+        if direction == "up" then
+            return turtle.placeUp()
+        end
+        if direction == "down" then
+            return turtle.placeDown()
+        end
+        return turtle.place()
+    end
+
+    -- turtle.drop(), but better. Returns success
+    -- lu("drop", nFirstSlot (1), nLastSlot (nFirstSlot), sDirection (forward), nRetain (0))
+    if luType == "drop" then
+        local lower = lu("toSlot", lu("notNil", luArg1, 1))
+        local upper = lu("toSlot", lu("notNil", luArg2, lower))
+        local direction = lu("notNil", luArg3, "forward")
+        local retain = lu("notNil", luArg4, 0)
+        local success = false
+        for slot=lower,upper do
+            local amount = turtle.getItemCount(slot) - retain
+            if amount < 1 then
+                goto continue
+            end
+            turtle.select(slot)
+            if direction == "up" then
+                success = success or turtle.dropUp(amount)
+            elseif direction == "down" then
+                success = success or turtle.dropDown(amount)
+            else
+                success = success or turtle.drop(amount)
+            end
+            ::continue::
+        end
+        return success
+    end
+
+    -- Refuel. Returns success.
+    -- lu("refuel", nFirstSlot (1), nLastSlot (nFirstSlot), nRetain (0)) 
+    if luType == "refuel" then
+        local lower = lu("toSlot", lu("notNil", luArg1, 1))
+        local upper = lu("toSlot", lu("notNil", luArg2, lower))
+        local retain = lu("notNil", luArg3, 0)
+        local success = false
+        for slot=lower,upper do
+            local amount = turtle.getItemCount(slot) - retain
+            if amount < 1 then
+                goto continue
+            end
+            turtle.select(slot)
+            success = success or turtle.refuel()
+            ::continue::
+        end
+        return success
+    end
+end
